@@ -2,22 +2,21 @@
 ##########################################################
 #                                                        #
 #  Auth:       ""                                        #
-#  Created:    19/11/2024                                #
-#  Project:    FastAPI Geocoding Service                 #          
+#  Created:    11/06/2024                                #
+#  Project:    WhatsApp Geolocation Bot                  #          
 #                                                        #
-#  Summary:    This project is a FastAPI-based service   #
-#              that handles geocoding requests using     #
-#              the Google maps API. It processes user    #
-#              input addresses, sends requests to        #
-#              Google maps, and returns the              #
-#              corresponding latitude and longitude.     #
+#  Summary:    This module handles the incoming WhatsApp #
+#              messages via Twilio, queries the          #
+#              LocationIQ API for geolocation data, and  #
+#              responds with latitude and longitude.     #
 #                                                        #
 ##########################################################
 
 
-from routes.geocode import router as geocode_router
+
 from fastapi import FastAPI
+from routes.whatsapp_api import router as whatsapp_router
 
 app = FastAPI()
 
-app.include_router(geocode_router)
+app.include_router(whatsapp_router)

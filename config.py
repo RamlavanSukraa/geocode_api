@@ -1,23 +1,15 @@
 import configparser
-from utils.logger import setup_logger
 
-logger = setup_logger('app_logger')
+# Initialize configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-def load_config(section, key, config_file='config.ini'):
+# Twilio Configuration
+twilio = {
+    'account_sid': config.get('twilio', 'account_sid'),
+    'auth_token': config.get('twilio', 'auth_token'),
+}
 
-    logger.info("Loading configuration")
-
-    config = configparser.ConfigParser()
-    config.read(config_file)
-
-    if section not in config:
-
-        logger.error(f"Section '{section}' not found in the configuration file.")
-        raise Exception(f"Section '{section}' not found in the configuration file.")
-    
-    value = config.get(section, key).strip()  # Ensure no trailing spaces
-    logger.info("Successfully configuration loaded")
-    return value
-
-# Load the API key
-API_KEY = load_config('google_maps', 'api_key')
+# LocationIQ Configuration
+api_key = config.get('locationiq', 'api_key')
+url = config.get('locationiq', 'url')
