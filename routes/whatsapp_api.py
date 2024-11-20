@@ -15,49 +15,60 @@ client = Client(twilio['account_sid'], twilio['auth_token'])
 @router.post('/api/v1/whatsapp/')
 async def sms(request: Request):
     try:
-        # Capture and log the raw body from the request
         logger.info("Receiving request from Twilio...")
         form_data = await request.form()
         logger.info(f"Received form data: {form_data}")
 
-        # Extract relevant fields from form_data
+        # Extract fields from form_data
         body = form_data.get("Body")
         from_number = form_data.get("From")
         to_number = form_data.get("To")
+        latitude = form_data.get("Latitude")
+        longitude = form_data.get("Longitude")
 
-        # Log the extracted fields for debugging
         logger.info(f"Extracted Body: {body}")
         logger.info(f"Extracted From: {from_number}")
         logger.info(f"Extracted To: {to_number}")
+        logger.info(f"Extracted Latitude: {latitude}")
+        logger.info(f"Extracted Longitude: {longitude}")
 
-        if not body:
-            logger.warning("Message body is missing.")
-            raise HTTPException(status_code=400, detail="No message body provided")
+        # Handle location messages
+        if latitude and longitude:
+            logger.info("Processing location message.")
+            response_message = f'Received location: Latitude {latitude}, Longitude {longitude}'
+        elif body:
+            logger.info("Processing text message.")
+            # Encode the location for the geocoding API
+            encoded_location = quote(body)
+            geocode_url = f"{url}{encoded_location}&key={api_key}&format=json"
+            logger.info(f"Geocoding URL: {geocode_url}")
 
-        # Call Location IQ API for geocoding
-        encoded_location = quote(body)
-        geocode_url = f"{url}{encoded_location}&key={api_key}&format=json"
-        logger.info(f"Geocoding URL: {geocode_url}")
+            try:
+                response = requests.get(geocode_url)
+                logger.info(f"Geocoding API response status: {response.status_code}")
+                response.raise_for_status()
 
-        try:
-            response = requests.get(geocode_url)
-            logger.info(f"Geocoding API response status: {response.status_code}")
-            response.raise_for_status()  # Raise an error for bad status codes
+                geocode_data = response.json()
 
-            geocode_data = response.json()
-            logger.info(f"Geocode response data: {geocode_data}")
+                if not geocode_data or len(geocode_data) == 0:
+                    raise ValueError("Geocoding API returned empty data.")
 
-            # Extract latitude and longitude
-            lat = geocode_data[0]['lat']
-            lon = geocode_data[0]['lon']
-            logger.info(f"Extracted coordinates: Latitude {lat}, Longitude {lon}")
+                lat = geocode_data[0].get('lat')
+                lon = geocode_data[0].get('lon')
 
-            response_message = f'Coordinates for "{body}": Latitude {lat}, Longitude {lon}'
-        except (requests.RequestException, IndexError, KeyError) as e:
-            logger.error(f"Geocoding error: {e}")
-            response_message = 'Error retrieving geolocation. Please ensure the location is valid.'
+                if not lat or not lon:
+                    raise KeyError("Missing 'lat' or 'lon' in geocoding response.")
 
-        # Send the response back using Twilio
+                logger.info(f"Extracted coordinates: Latitude {lat}, Longitude {lon}")
+                response_message = f'Coordinates for "{body}": Latitude {lat}, Longitude {lon}'
+            except (requests.RequestException, ValueError, KeyError, IndexError) as e:
+                logger.error(f"Geocoding error: {e}")
+                response_message = 'Error retrieving geolocation. Please ensure the location is valid.'
+        else:
+            logger.warning("Message body and location are missing.")
+            raise HTTPException(status_code=400, detail="No message body or location provided")
+
+        # Send response to Twilio
         logger.info("Sending response back to Twilio...")
         message = client.messages.create(
             from_=to_number,
