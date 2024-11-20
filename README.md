@@ -82,6 +82,4 @@ Logs are generated for each step of the process and are helpful for debugging. C
 - `Twilio`: For WhatsApp integration.
 - `requests`: For making HTTP requests to the geocoding API.
 
-## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
