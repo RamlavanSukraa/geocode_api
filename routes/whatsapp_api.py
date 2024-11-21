@@ -1,5 +1,7 @@
+# routes/whatsapp_api.py
+
 from fastapi import APIRouter, HTTPException, Request, Form
-from config import twilio,api_key,url
+from config import load_config
 from twilio.rest import Client
 import requests
 from urllib.parse import quote
@@ -8,6 +10,12 @@ from utils.logger import setup_logger
 # Set up logger configuration
 logger =  setup_logger(__name__)
 router = APIRouter()
+
+# Load configurations
+configurations = load_config()
+twilio = configurations['twilio']
+api_key = configurations['locationiq']['api_key']
+url = configurations['locationiq']['url']
 
 # Twilio client initialization
 client = Client(twilio['account_sid'], twilio['auth_token'])
@@ -29,8 +37,6 @@ async def sms(request: Request):
         logger.info(f"Extracted Body: {body}")
         logger.info(f"Extracted From: {from_number}")
         logger.info(f"Extracted To: {to_number}")
-        logger.info(f"Extracted Latitude: {latitude}")
-        logger.info(f"Extracted Longitude: {longitude}")
 
         # Handle location messages
         if latitude and longitude:
@@ -41,7 +47,6 @@ async def sms(request: Request):
             # Encode the location for the geocoding API
             encoded_location = quote(body)
             geocode_url = f"{url}{encoded_location}&key={api_key}&format=json"
-            logger.info(f"Geocoding URL: {geocode_url}")
 
             try:
                 response = requests.get(geocode_url)
